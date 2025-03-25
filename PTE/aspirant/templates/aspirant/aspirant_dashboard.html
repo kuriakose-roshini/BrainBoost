@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% block title %}Aspirant Dashboard{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h2 class="mt-4">Welcome, {{ user.username }}!</h2>
+    
+    <div class="row mt-4">
+        <div class="col-md-4">
+            <div class="card shadow">
+                <div class="card-body text-center">
+                    <h5 class="card-title">Profile</h5>
+                    <img src="{{ user.aspirant.profile_picture.url }}" class="img-fluid rounded-circle" alt="Profile Picture" width="100">
+                    <p class="mt-2">{{ user.email }}</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-8">
+            <div class="card shadow">
+                <div class="card-body">
+                    <h5 class="card-title">Dashboard Actions</h5>
+                    <ul class="list-group">
+                        <li class="list-group-item"><a href="#">Start PTE Mock Test</a></li>
+                        <li class="list-group-item"><a href="#">View Test Results</a></li>
+                        <li class="list-group-item"><a href="#">Update Profile</a></li>
+                        <li class="list-group-item"><a href="{% url 'aspirant_logout' %}" class="text-danger">Logout</a></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

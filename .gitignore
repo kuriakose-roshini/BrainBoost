@@ -1,0 +1,83 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual Environment
+venv/
+.venv/
+env/
+.env/
+ENV/
+
+# Distribution / packaging
+dist/
+build/
+*.egg-info/
+
+# IDE-specific files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# Environment files
+.env
+
+# Logs
+*.log
+
+# OS generated files
+.DS_Store
+Thumbs.db
+```
+
+4. Add the .gitignore file:
+```bash
+nano .gitignore
+# Paste the contents from the artifact above
+# Save and exit (Ctrl+X, then Y, then Enter)
+```
+
+5. Stage all your project files:
+```bash
+git add .
+```
+
+6. Commit the files:
+```bash
+git commit -m "Initial commit: Project setup"
+```
+
+7. Link to your remote repository:
+```bash
+git remote add origin <your-repository-url>
+```
+Replace `<your-repository-url>` with the URL of your Git repository (either HTTPS or SSH)
+
+8. Push your project to the remote repository:
+```bash
+git push -u origin main
+# Or if your default branch is named 'master':
+# git push -u origin master
+```
+
+Troubleshooting tips:
+- If you're having issues with the remote repository, double-check:
+  1. The repository URL is correct
+  2. You have the necessary permissions
+  3. You're authenticated (for private repositories)
+
+- If you accidentally added files you don't want, you can:
+  - Remove a specific file from staging: `git reset HEAD <filename>`
+  - Unstage all files: `git reset`
+
+- If you want to see what files will be added:
+```bash
+git status
+```
+
+Do you need help with any of these steps? Do you know the exact URL of your remote repository, or do you need guidance on creating one?

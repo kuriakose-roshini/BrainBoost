@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+{% block title %}Aspirant Registration{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h2 class="mt-4">Aspirant Registration</h2>
+    <form id="register-form" method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+
+        <div class="mb-3">
+            <label>Username:</label>
+            {{ form.username }}
+        </div>
+
+        <div class="mb-3">
+            <label>Email:</label>
+            {{ form.email }}
+        </div>
+
+        <div class="mb-3">
+            <label>Date of Birth:</label>
+            {{ form.date_of_birth }}
+        </div>
+
+        <div id="parent-info" style="display: none;">
+            <h5>Parental Details (Required if under 16)</h5>
+            <div class="mb-3">
+                <label>Parent's Name:</label>
+                {{ form.parent_name }}
+            </div>
+            <div class="mb-3">
+                <label>Parent's Email:</label>
+                {{ form.parent_email }}
+            </div>
+        </div>
+
+        <div class="mb-3">
+            <label>Password:</label>
+            {{ form.password }}
+        </div>
+
+        <div class="mb-3">
+            <label>Re-enter Password:</label>
+            {{ form.confirm_password }}
+        </div>
+
+        <!-- Webcam Capture -->
+        <h5>Face Image (Required for Face Recognition Login)</h5>
+        <video id="webcam" autoplay></video>
+        <canvas id="canvas" style="display: none;"></canvas>
+        <input type="hidden" name="captured_image" id="captured_image">
+        <button type="button" id="capture-btn" class="btn btn-secondary">Capture Face</button>
+
+        <button type="submit" class="btn btn-primary">Register</button>
+    </form>
+</div>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        const video = document.getElementById("webcam");
+        const canvas = document.getElementById("canvas");
+        const captureBtn = document.getElementById("capture-btn");
+        const capturedImageInput = document.getElementById("captured_image");
+
+        navigator.mediaDevices.getUserMedia({ video: true })
+            .then(stream => { video.srcObject = stream; })
+            .catch(err => { console.error("Error accessing webcam:", err); });
+
+        captureBtn.addEventListener("click", function () {
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            canvas.getContext("2d").drawImage(video, 0, 0);
+            capturedImageInput.value = canvas.toDataURL("image/png");
+            alert("Face captured successfully!");
+        });
+    });
+</script>
+{% endblock %}
