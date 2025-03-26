@@ -1,8 +1,9 @@
+# urls.py in your aspirant app
 from django.urls import path
-from .views import *
+from . import views
 
 urlpatterns = [
-    path('register/', aspirant_register, name='aspirant_register'),
-    path('login/', aspirant_login, name='aspirant_login'),
-    path('dashboard', aspirant_dashboard, name='aspirant_dashboard'),
+    path('register/', views.register_aspirant, name='aspirant_register'),
+    path('login/', views.login_aspirant, name='aspirant_login'),
+    path('dashboard/', views.dashboard_aspirant, name='aspirant_dashboard'),
 ]

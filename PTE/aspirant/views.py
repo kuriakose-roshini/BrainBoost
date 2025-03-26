@@ -1,84 +1,102 @@
-from django.shortcuts import render, redirect
-from django.contrib.auth import login, authenticate, get_user_model
-from django.contrib import messages
-from .forms import AspirantRegistrationForm, AspirantLoginForm
+# views.py in your aspirant app
 from django.contrib.auth.decorators import login_required
+from django.shortcuts import render, redirect
+from django.contrib.auth import login, authenticate
+from django.contrib import messages
 from .models import Aspirant
-import base64
+from .face_utils import FaceRecognition
+from .forms import AspirantRegistrationForm, AspirantLoginForm
 import cv2
-import numpy as np
-import os
-from django.core.files.base import ContentFile
+face_recognition = FaceRecognition()
 
-from .train_face_model import train_face_model
-User = get_user_model()
-FACE_IMAGE_PATH = "media/face_images/"
 
-def aspirant_register(request):
-    if request.method == "POST":
+def register_aspirant(request):
+    if request.method == 'POST':
         form = AspirantRegistrationForm(request.POST)
-        captured_image = request.POST.get("captured_image")
-
-        if not captured_image:
-            messages.error(request, "Face image capture is required!")
-            return render(request, 'aspirant/aspirant_register.html', {'form': form})
-
         if form.is_valid():
             try:
-                aspirant = form.save(commit=False)
+                # Save user but don't commit to DB yet
+                user = form.save(commit=False)
 
-                # Decode Base64 face image and save it
-                format, imgstr = captured_image.split(';base64,')
-                ext = format.split('/')[-1]
-                image_data = base64.b64decode(imgstr)
-                filename = f"{aspirant.user.username}.{ext}"
-                image_path = os.path.join("media/face_images/", filename)
+                # Set any additional fields
+                user.is_active = True  # Activate user immediately
 
-                with open(image_path, "wb") as f:
-                    f.write(image_data)
+                # Save to database
+                user.save()
 
-                aspirant.face_image = f"face_images/{filename}"
-                aspirant.save()
+                # Initialize face recognition
+                face_recognition = FaceRecognition()
 
-                # Train Haarcascade model
-                train_face_model()
+                try:
+                    # Capture face images (60 samples)
+                    images_captured = face_recognition.capture_images(user.id)
 
-                messages.success(request, "Registration successful! Face trained successfully.")
-                return redirect('aspirant_login')
+                    if images_captured < 30:  # Minimum threshold
+                        user.delete()  # Rollback user creation
+                        messages.error(request,
+                                       'Failed to capture sufficient face images. Please try again in better lighting.'
+                                       )
+                        return render(request, 'aspirant/aspirant_register.html', {'form': form})
+
+                    messages.success(request,
+                                     f'Registration successful! {images_captured} face images captured. Please login.'
+                                     )
+                    return redirect('aspirant_login')
+
+                except cv2.error as e:
+                    user.delete()  # Rollback user creation
+                    messages.error(request,
+                                   'Camera error. Please ensure your camera is connected and try again.'
+                                   )
+                    return render(request, 'aspirant/aspirant_register.html', {'form': form})
+
+                except Exception as e:
+                    user.delete()  # Rollback user creation
+                    messages.error(request,
+                                   f'Face registration failed: {str(e)}'
+                                   )
+                    return render(request, 'aspirant/aspirant_register.html', {'form': form})
 
             except Exception as e:
-                print(f"Error: {e}")  # Log the error in the terminal
-                messages.error(request, f"Registration failed: {e}")
-        else:
-            print("Form errors:", form.errors)  # Print errors in the terminal
-            messages.error(request, f"Registration failed. Errors: {form.errors}")
+                messages.error(request,
+                               f'Registration failed: {str(e)}'
+                               )
+                return render(request, 'aspirant/aspirant_register.html', {'form': form})
 
     else:
         form = AspirantRegistrationForm()
 
-    return render(request, 'aspirant/aspirant_register.html', {'form': form})
+    return render(request, 'aspirant/aspirant_register.html', {
+        'form': form,
+        'camera_required': True  # Flag for template to show camera warning
+    })
 
-
-
-
-
-def aspirant_login(request):
-    if request.method == "POST":
-        form = AspirantLoginForm(request.POST)
+def login_aspirant(request):
+    if request.method == 'POST':
+        form = AspirantLoginForm(request, data=request.POST)
         if form.is_valid():
-            username = form.cleaned_data['username']
-            password = form.cleaned_data['password']
-            user = authenticate(username=username, password=password)
+            email = form.cleaned_data.get('email')
+            password = form.cleaned_data.get('password')
+            user = authenticate(email=email, password=password)
 
-            if user is not None and hasattr(user, 'aspirant'):
-                login(request, user)
-                return redirect('aspirant_dashboard')
+            if user is not None:
+                # Perform face recognition
+                recognized_user_id = face_recognition.recognize_face()
+
+                if recognized_user_id == user.id:
+                    login(request, user)
+                    messages.success(request, f'Welcome {user.username}!')
+                    return redirect('aspirant_dashboard')
+                else:
+                    messages.error(request, 'Face recognition failed. Please try again.')
             else:
-                messages.error(request, "Invalid credentials or not an aspirant.")
+                messages.error(request, 'Invalid email or password.')
     else:
         form = AspirantLoginForm()
+
     return render(request, 'aspirant/aspirant_login.html', {'form': form})
 
 @login_required
-def aspirant_dashboard(request):
+def dashboard_aspirant(request):
     return render(request, 'aspirant/aspirant_dashboard.html')
+

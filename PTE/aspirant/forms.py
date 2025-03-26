@@ -1,42 +1,41 @@
+# forms.py in your aspirant app
 from django import forms
-from django.contrib.auth.models import User
+from django.contrib.auth.forms import UserCreationForm, AuthenticationForm
 from .models import Aspirant
 from datetime import date
-import re
 
 
-class AspirantRegistrationForm(forms.ModelForm):
-    username = forms.CharField(max_length=150)
-    email = forms.EmailField()
-    password = forms.CharField(widget=forms.PasswordInput)
-    confirm_password = forms.CharField(widget=forms.PasswordInput, label="Re-enter Password")
-    date_of_birth = forms.DateField(widget=forms.DateInput(attrs={'type': 'date'}))
-    parent_name = forms.CharField(max_length=150, required=False)
-    parent_email = forms.EmailField(required=False)
+class AspirantRegistrationForm(UserCreationForm):
+    date_of_birth = forms.DateField(
+        widget=forms.DateInput(attrs={'type': 'date'}),
+        help_text="We need this to verify if parental consent is required"
+    )
+    parent_email = forms.EmailField(
+        required=False,
+        help_text="Required only if you're under 16 years old"
+    )
 
     class Meta:
         model = Aspirant
-        fields = ['username', 'email', 'password', 'confirm_password', 'date_of_birth', 'parent_name', 'parent_email']
+        fields = ('username', 'email', 'first_name', 'last_name',
+                  'date_of_birth', 'parent_email', 'password1', 'password2')
 
     def clean(self):
         cleaned_data = super().clean()
-        password = cleaned_data.get("password")
-        confirm_password = cleaned_data.get("confirm_password")
-        dob = cleaned_data.get("date_of_birth")
+        dob = cleaned_data.get('date_of_birth')
+        parent_email = cleaned_data.get('parent_email')
 
-        if password and confirm_password and password != confirm_password:
-            self.add_error('confirm_password', "Passwords do not match.")
+        if dob:
+            today = date.today()
+            age = today.year - dob.year - ((today.month, today.day) < (dob.month, dob.day))
 
-        today = date.today()
-        age = today.year - dob.year - ((today.month, today.day) < (dob.month, dob.day))
-        if age < 16:
-            if not cleaned_data.get("parent_name") or not cleaned_data.get("parent_email"):
-                self.add_error("parent_name", "Parent's name is required for applicants under 16.")
-                self.add_error("parent_email", "Parent's email is required for applicants under 16.")
+            if age < 16 and not parent_email:
+                self.add_error(
+                    'parent_email',
+                    "Parent email is required for users under 16 years old."
+                )
 
         return cleaned_data
 
-
-class AspirantLoginForm(forms.Form):
-    username = forms.CharField(max_length=150)
-    password = forms.CharField(widget=forms.PasswordInput)
+class AspirantLoginForm(AuthenticationForm):
+    username = forms.CharField(label='Email / Username')
